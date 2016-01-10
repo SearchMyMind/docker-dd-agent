@@ -5,9 +5,10 @@ MAINTAINER Datadog <package@datadoghq.com>
 ENV DOCKER_DD_AGENT yes
 ENV AGENT_VERSION 1:5.6.3-1
 
+RUN update-ca-certificates
 
 RUN cd /tmp \
-  && wget -q https://s3.amazonaws.com/apt.datadoghq.com/pool/d/da/datadog-agent_5.6.3-1_amd64.deb
+  && wget -q https://s3.amazonaws.com/apt.datadoghq.com/pool/d/da/datadog-agent_5.6.3-1_i386.deb
 
 RUN cd /tmp \
   && dpkg -i datadog-agent_5.6.3-1_amd64.deb
