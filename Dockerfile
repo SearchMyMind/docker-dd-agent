@@ -18,7 +18,7 @@ RUN cd /tmp \
   && wget -q https://s3.amazonaws.com/apt.datadoghq.com/pool/d/da/datadog-agent_5.6.3-1_amd64.deb
 
 RUN cd /tmp \
-  && dpkg -i datadog-agent_5.6.3-1_amd64.deb
+  && dpkg  --force-architecture -i datadog-agent_5.6.3-1_amd64.deb
 
 # Install the Agent
 #RUN echo "deb http://apt.datadoghq.com/ stable main" > /etc/apt/sources.list.d/datadog.list \
