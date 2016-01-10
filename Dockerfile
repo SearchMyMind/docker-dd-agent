@@ -7,7 +7,7 @@ ENV AGENT_VERSION 1:5.6.3-1
 
 
 RUN apt-get update \
-  && apt-get install --no-install-recommends -y ca-certificates wget \
+  && apt-get install --no-install-recommends -y ca-certificates wget supervisor \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*1_amd64.deb
 
