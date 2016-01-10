@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM armbuild/debian:jessie
 
 MAINTAINER Datadog <package@datadoghq.com>
 
