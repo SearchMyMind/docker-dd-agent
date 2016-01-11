@@ -1,63 +1,41 @@
-FROM armbuild/debian:jessie
+# Pull base image
+FROM hypriot/rpi-alpine-scratch
 
-MAINTAINER Datadog <package@datadoghq.com>
-
-ENV DOCKER_DD_AGENT yes
-ENV AGENT_VERSION 1:5.6.3-1
-
-
-RUN apt-get update \
-  && apt-get install --no-install-recommends -y ca-certificates wget supervisor \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*1_amd64.deb
-
-
-RUN update-ca-certificates
-
-RUN cd /tmp \
-  && wget -q https://s3.amazonaws.com/apt.datadoghq.com/pool/d/da/datadog-agent_5.6.3-1_amd64.deb
-
-RUN cd /tmp \
-  && dpkg  --force-architecture -i datadog-agent_5.6.3-1_amd64.deb
-
-# Install the Agent
-#RUN echo "deb http://apt.datadoghq.com/ stable main" > /etc/apt/sources.list.d/datadog.list \
-# && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C7A7DA52 \
-# && apt-get update \
-# && apt-get install --no-install-recommends -y datadog-agent="${AGENT_VERSION}" \
-# && apt-get clean \
-# && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*1_amd64.deb
+# Install datadog with dependencies
+# 1. basic tools
+# 3. sysstat
+# 4. datadog agent from source
+RUN apk update \
+    && apk upgrade \
+    && apk add curl \
+    tar \
+    sysstat \
+    && rm -rf /var/cache/apk/* \
+    && DD_START_AGENT=0 sh -c "$(curl -L https://raw.githubusercontent.com/DataDog/dd-agent/master/packaging/datadog-agent/source/setup_agent.sh)"
 
 # Configure the Agent
 # 1. Listen to statsd from other containers
 # 2. Turn syslog off
 # 3. Remove dd-agent user from supervisor configuration
-# 4. Remove dd-agent user from init.d configuration
-# 5. Fix permission on /etc/init.d/datadog-agent
-# 6. Remove network check
-# 7. Symlink Dogstatsd to allow standalone execution
-RUN mv /etc/dd-agent/datadog.conf.example /etc/dd-agent/datadog.conf \
- && sed -i -e"s/^.*non_local_traffic:.*$/non_local_traffic: yes/" /etc/dd-agent/datadog.conf \
- && sed -i -e"s/^.*log_to_syslog:.*$/log_to_syslog: no/" /etc/dd-agent/datadog.conf \
- && sed -i "/user=dd-agent/d" /etc/dd-agent/supervisor.conf \
- && sed -i 's/AGENTUSER="dd-agent"/AGENTUSER="root"/g' /etc/init.d/datadog-agent \
- && chmod +x /etc/init.d/datadog-agent \
- && rm /etc/dd-agent/conf.d/network.yaml.default \
- && ln -s /opt/datadog-agent/agent/dogstatsd.py /usr/bin/dogstatsd
+# 4. Remove network check
+# 5. Add docker check
+RUN mv ~/.datadog-agent/agent/datadog.conf.example ~/.datadog-agent/agent/datadog.conf \
+    && sed -i -e"s/^.*non_local_traffic:.*$/non_local_traffic: yes/" ~/.datadog-agent/agent/datadog.conf \
+    && sed -i -e"s/^.*log_to_syslog:.*$/log_to_syslog: no/" ~/.datadog-agent/agent/datadog.conf \
+    && sed -i "/user=dd-agent/d" ~/.datadog-agent/supervisord/supervisord.conf \
+    && rm ~/.datadog-agent/agent/conf.d/network.yaml.default
+
+# Extra conf.d
+CMD mkdir -p /conf.d
+VOLUME ["/conf.d"]
 
 # Add Docker check
-COPY conf.d/docker_daemon.yaml /etc/dd-agent/conf.d/docker_daemon.yaml
-
+COPY conf.d/docker_daemon.yaml ~/.datadog-agent/agent/conf.d/docker_daemon.yaml
+# Add entrypoint
 COPY entrypoint.sh /entrypoint.sh
-
-# Extra conf.d and checks.d
-CMD mkdir -p /conf.d
-CMD mkdir -p /checks.d
-VOLUME ["/conf.d"]
-VOLUME ["/checks.d"]
 
 # Expose DogStatsD port
 EXPOSE 8125/udp
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["supervisord", "-n", "-c", "/etc/dd-agent/supervisor.conf"]
+ENTRYPOINT ["sh","/entrypoint.sh"]
+CMD  ~/.datadog-agent/bin/agent start
