@@ -27,11 +27,15 @@ RUN mv ~/.datadog-agent/agent/datadog.conf.example ~/.datadog-agent/agent/datado
     && sed -i -e"s/^.*non_local_traffic:.*$/non_local_traffic: yes/" ~/.datadog-agent/agent/datadog.conf \
     && sed -i -e"s/^.*log_to_syslog:.*$/log_to_syslog: no/" ~/.datadog-agent/agent/datadog.conf \
     && sed -i "/user=dd-agent/d" ~/.datadog-agent/supervisord/supervisord.conf \
+    && sed -i 's/AGENTUSER="dd-agent"/AGENTUSER="root"/g' /etc/init.d/datadog-agent \
+    && chmod +x ~/.datadog-agent/bin/agent
     && rm ~/.datadog-agent/agent/conf.d/network.yaml.default
 
-# Extra conf.d
+# Extra conf.d and checks.d
 CMD mkdir -p /conf.d
+CMD mkdir -p /checks.d
 VOLUME ["/conf.d"]
+VOLUME ["/checks.d"]
 
 # Add Docker check
 COPY conf.d/docker_daemon.yaml ~/.datadog-agent/agent/conf.d/docker_daemon.yaml
