@@ -7,9 +7,13 @@ FROM hypriot/rpi-alpine-scratch
 # 4. datadog agent from source
 RUN apk update \
     && apk upgrade \
-    && apk add curl \
-    tar \
-    sysstat \
+    && apk add musl \
+               python \
+               py-virtualenv \
+               py-pip \
+               curl \
+               tar \
+               sysstat \
     && rm -rf /var/cache/apk/* \
     && DD_START_AGENT=0 sh -c "$(curl -L https://raw.githubusercontent.com/DataDog/dd-agent/master/packaging/datadog-agent/source/setup_agent.sh)"
 
